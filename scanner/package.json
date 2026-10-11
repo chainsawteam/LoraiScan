@@ -1,0 +1,60 @@
+{
+    "name": "token-db-manager",
+    "version": "1.0.0",
+    "description": "Token数据库管理系统后端服务",
+    "main": "src/apps/scan-worker.js",
+    "scripts": {
+        "start": "node src/apps/scan-worker.js",
+        "scan:worker": "node src/apps/scan-worker.js",
+        "scan:bsc": "CHAIN_NAME=BSC node src/apps/scan-worker.js",
+        "scan:bsc:dry": "CHAIN_NAME=BSC SCAN_DRY_RUN=1 node src/apps/scan-worker.js",
+        "scan:eth": "CHAIN_NAME=ETH node src/apps/scan-worker.js",
+        "scan:eth:dry": "CHAIN_NAME=ETH SCAN_DRY_RUN=1 node src/apps/scan-worker.js",
+        "scan:base": "CHAIN_NAME=BASE node src/apps/scan-worker.js",
+        "scan:base:dry": "CHAIN_NAME=BASE SCAN_DRY_RUN=1 node src/apps/scan-worker.js",
+        "scan:arb": "CHAIN_NAME=ARB node src/apps/scan-worker.js",
+        "scan:arb:dry": "CHAIN_NAME=ARB SCAN_DRY_RUN=1 node src/apps/scan-worker.js",
+        "scan:robin": "CHAIN_NAME=ROBIN node src/apps/scan-worker.js",
+        "scan:robin:dry": "CHAIN_NAME=ROBIN SCAN_DRY_RUN=1 node src/apps/scan-worker.js",
+        "backfill:tokens": "node src/apps/backfill-tokens.js",
+        "import:contracts": "node src/apps/import-contract-assets.js",
+        "audit:contracts": "node src/apps/audit-contract-assets.js",
+        "filter:scan-tokens": "node src/apps/filter-scan-tokens.js",
+        "worker:status": "node src/apps/worker-status.js",
+        "pm2:start": "pm2 start ecosystem.config.js",
+        "pm2:reload": "pm2 reload ecosystem.config.js",
+        "api:start": "node src/apps/api-server.js",
+        "api:with-scan": "ENABLE_BACKGROUND_TASKS=1 node src/apps/api-server.js",
+        "api:with-scan:dry": "ENABLE_BACKGROUND_TASKS=1 SCAN_DRY_RUN=1 node src/apps/api-server.js",
+        "api:legacy": "node server.js",
+        "docker:up": "docker compose up -d --build",
+        "docker:logs": "docker compose logs -f",
+        "dev": "nodemon src/apps/scan-worker.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "token",
+        "database",
+        "mysql",
+        "express",
+        "api"
+    ],
+    "author": "Your Name",
+    "license": "MIT",
+    "dependencies": {
+        "cors": "^2.8.5",
+        "dotenv": "^16.6.1",
+        "evmole": "^0.7.2",
+        "express": "^4.18.2",
+        "mysql": "^2.18.1",
+        "mysql2": "^3.6.0",
+        "web3": "^1.10.4"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.1",
+        "pm2": "^5.4.3"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

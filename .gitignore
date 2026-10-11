@@ -1,0 +1,4 @@
+.env
+config.yaml
+bin/
+scanner/node_modules/

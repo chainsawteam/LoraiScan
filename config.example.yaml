@@ -1,0 +1,280 @@
+BlackMethod:
+  "0x441a3e70": withdraw(uint256 _pid, uint256 _amount)
+  "0x4641257d": harvest()
+  "0x84767627": zapTokenToLP(address _from, uint256 amount, address _to)
+  "0xa9059cbb": transfer(address,uint256)
+  "0xa111774d": quartzIn(uint256,uint256,address,uint256)
+  "0xb6428a7a": transfer(address[] _token,address[] _dropper,address[] _dropto)
+Expr:
+  123: "From == '0x123' && To == '0x456'"
+  approve: "To == '0x55d398326f99059ff775485246999027b3197955' && Input[:10] == '0x095ea7b3'"
+MySQL:
+  dataSource: "ave_scanner:change_me@tcp(127.0.0.1:3307)/ave_scanner?parseTime=true"
+MongoDB:
+  dataSource: "mongodb://username:password@localhost:27017/lora"
+Redis:
+  addr: /var/run/redis/redis-server.sock
+  db: 0
+  network: unix
+  password: ""
+System:
+  name: BSC
+  scan: https://bscscan.com/
+  gocount: 24
+  log: true
+  logfile: bsc3.log
+WebAdmin:
+  host: 0.0.0.0:38080
+  password: change_me
+  username: admin
+Web3:
+  # 1 ws 2 http 3 ipc
+  http: http://127.0.0.1:8545
+  ipc: /path/to/geth.ipc
+  type: 3
+  ws: ws://127.0.0.1:8546
+Plugins:
+  #test: false
+  Plugin_migrate.: true
+  Plugin_newcontract.: true
+  Plugin_bigtransfer.: true
+  Plugin_traceall.: true
+  Plugin_traceblock.: true
+  #testmod: true
+  #t2: true
+Plugin_bigtransfer:
+  addr: /var/run/redis/redis-server.sock
+  db: 12
+  network: unix
+  password: ""
+  chatid: "-1001987570848"
+  threadid: 1439
+  cmpvalue: "10000000000000000000"
+  approveLimit: 19
+  tolist:
+    "0x55d398326f99059ff775485246999027b3197955": "USDT"
+    "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c": "WBNB"
+    "0xe9e7cea3dedca5984780bafc599bd69add087d56": "BUSD"
+  tolistCmpvalue:
+    "0x55d398326f99059ff775485246999027b3197955": "10000000000000000000"
+    "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c": "10000000000000000000"
+    "0xe9e7cea3dedca5984780bafc599bd69add087d56": "10000000000000000000"
+  blackto:
+    "0x0000000000000000000000000000000000001002": true
+  method:
+Plugin_newcontract:
+  # 目前还不需要接入数据库，只有burn的监控
+  chatid: "-1001987570848"
+  threadid: 66
+Plugin_traceall:
+  addr: /var/run/redis/redis-server.sock
+  db: 14
+  network: unix
+  password: ""
+  prevaluelimit: 20
+  chatid: "-1001987570848"
+  tracerfrom: "8894e0a0c962cb723c1976a4421c95949be2d4e3" #需要填当前链有原生代币的钱包地址
+  threadid: 377
+  threadid2: 1464
+  tracer: "{swap:[],transfer:[],errors:[],creates:[],step:function(log){var swap_list=['d78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822','c2c0245e056d5fb095f04cd6373bc770802ebd1e6c918eb78fdef843cdb37b0f','94b71903a0252ac734757bb557f3c85537d09b36d74daf5364e46ae7518a92d4','fc431937278b84c6fa5b23bcc58f673c647fea974d3656e766b22d8c1412e544','c42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67'];var opNumber=log.op.toNumber();if((opNumber)===0xf0||(opNumber)===0xf5){this.creates.push('1');return}if((opNumber&0xf0)!==0xa0){return}var topicCount=opNumber^0xa0;if(topicCount){if(log.stack.peek(2).toString(16)==='ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'){var res={token:toHex(log.contract.getAddress()),amount:toHex(log.memory.slice(parseInt(log.stack.peek(0)),parseInt(log.stack.peek(0))+parseInt(log.stack.peek(1)))),from:log.stack.peek(3).toString(16),to:log.stack.peek(4).toString(16),};this.transfer.push(res)}else if(log.stack.peek(2).toString(16)==='d1398bee19313d6bf672ccb116e51f4a1a947e91c757907f51fbb5b5e56c698f'){var res={token:log.stack.peek(5).toString(16),amount:toHex(log.memory.slice(parseInt(log.stack.peek(0)),parseInt(log.stack.peek(0))+parseInt(log.stack.peek(1)))),from:log.stack.peek(3).toString(16),to:log.stack.peek(4).toString(16),};this.transfer.push(res)}else if(swap_list.indexOf(log.stack.peek(2).toString(16))>-1){var res={count:'1',};this.swap.push(res)}}},fault:function(log){var error=log.getError();if(error!==undefined){var res={fault:true,step:log.step,error:error,address:toHex(log.contract.getAddress()),data:toHex(log.memory.slice(0)),};this.errors.push(res)}},result:function(){return{'ts':this.transfer,'swap':this.swap,'creates':this.creates,'errors':this.errors}}}"
+  blackmethod:
+    #"0x095ea7b3": "approve(address spender,uint256 amount)"
+
+Plugin_migrate:
+  addr: /var/run/redis/redis-server.sock
+  db: 1
+  network: unix
+  password: ""
+  chatid: "-1001987570848"
+  threadid: 2
+  method:
+    "0x207aba24": Migrate()
+    "0x8fd3ab80": migrate()
+    "0xd5837b67": Migrate(uint256)
+    "0x454b0608": migrate(uint256)
+    "0xad68ebf7": migrate(address,uint256)
+    "0xa5978538": Migrate(address,uint256)
+    "0xd58a618a": Migrate(address)
+    "0xce5494bb": migrate(address)
+    "0xd0456b4e": migrateTokens(uint256)
+    "0x3e3f256a": unknown
+    "0xd2b5f95a": unknown
+    "0xf96a6006": migrateToken(address)
+    "0x946ef2f6": unknown
+    "0xd5482804": migrateToken()
+    "0x52714a6e": migratetoken(address,uint256)
+    "0xd4ed7b3f": migrateToken(address,uint256)
+    "0x6c384128": migrateFrom(address fromTokenAdress, address ref)
+    "0x0bb02904": migrateLostAccount(address,address[])
+    "0x0ef5d757": migrate(bytes,bytes32,uint256,uint256,string)
+    "0x0f16ec8e": migrateOxSolidToPartner()
+    "0x0f3ff2d2": migrateTokenURI(uint256,uint256,string,bytes)
+    "0x1781d399": migrate_0()
+    "0x1cc1ca73": migrateOthertokens(address,address,uint256)
+    "0x1dd62c5d": migrateNode(address,string,uint256,uint256,uint256,uint256)
+    "0x1f144f16": migrate(address,uint8[],bytes32[],bytes32[])
+    "0x1fe9578e": migrateFunds(address,address)
+    "0x20c62b9a": migrateNodes(address)
+    "0x24fcd907": migrateReward()
+    "0x2611bda6": migratePayee(address,address,address,string)
+    "0x276f8dd4": migrate_1_admin(address)
+    "0x2d4d4191": migrateUpgrade()
+    "0x346e18ba": migrate(uint256[],bool)
+    "0x3487d732": migrateFromFarm(address,uint256,uint256,address[])
+    "0x350054a6": migrateRewards(address[],uint256[],uint256[])
+    "0x39da6c71": migrateToNewContractWaifus(address,uint256)
+    "0x3aceba5d": migratedSenders(address)
+    "0x3c0e339f": migrateAaveV2ToV3((address[],address[],bool,uint256[]))
+    "0x3cabbfa2": migrateTo_bcdf4c(address)
+    "0x3e32e650": migrateFrom(address,uint256,bool)
+    "0x3ec6cb08": migrate_1()
+    "0x3fa13349": migrateTo_56837f7(address)
+    "0x470e50c5": migrateTo_2316231(address)
+    "0x4a5fedd6": migrateDueDate()
+    "0x4e49aa15": migrateVirtualBalance(uint256)
+    "0x4e8ee388": migrateZap(uint256)
+    "0x4fd2edb7": migratePayee(address,address,string)
+    "0x512650d3": migratePlayer(address,(uint8,address,uint256,bytes,uint256,uint256,uint256))
+    "0x52ea6188": migrateBatch(uint256,uint256)
+    "0x5346ff82": migrateVault(address,address[])
+    "0x53a8b2c4": migrateUserInvestLegacy(address[],uint256[],uint256[],uint256[])
+    "0x543d0ee9": migrateCP(address,uint256,uint256,bool,uint256,uint256,uint256)
+    "0x54b6ee59": migrateLegacyToCP(address,uint256,uint256,bool,uint256,uint256,uint256)
+    "0x599a4e52": migrate_admin_manually(address,uint256,uint256)
+    "0x6137764c": migrateToNewContractWaifus(address)
+    "0x691d716c": migrateTickets((address,uint256[],uint256[])[])
+    "0x696eddbe": migrateAll(address,uint256,uint256,bytes)
+    "0x6c29cea7": migrateFrom(address,address[],uint256)
+    "0x6cf2bd13": migrate(address,uint256,((address,uint8[])[],uint256,uint8,bytes32,bytes32),address)
+    "0x6e3d6a29": migrateNodes(uint64[])
+    "0x703255a8": migrateMinedLP(address,address)
+    "0x7418edcf": migrateApplication(bytes32)
+    "0x74e93556": migrateSushiSwapV1Position(address,address,uint256)
+    "0x75af1df8": migrateAllGoldfinchPoolTokens(address)
+    "0x775e7c3f": migratePoolTokens(address,uint256)
+    "0x791803ca": migratedSuccessfully(address)
+    "0x7acc7e26": migrateBakers(uint256[])
+    "0x7ff57c57": migrateTo_a98a9ac(address,address)
+    "0x8932a90d": migrate(bytes)
+    "0x89bec344": migratedUnbondingLocks(address,uint256)
+    "0x8a36f4cb": migrateDeposit(uint256)
+    "0x8a605ccd": migrateTimestamp()
+    "0x8a716fbb": migratedDelegators(address)
+    "0x8d2b3295": migrateNewAddress()
+    "0x932231a4": migrateableOxPools(address)
+    "0x9bc7d477": migrate_0_admin(address)
+    "0x9e1bd408": migrate(uint16[])
+    "0x9eb95fb8": migrateNft(uint256[])
+    "0x9f19d05f": migrate(uint256,((address,uint8[])[],uint256,uint8,bytes32,bytes32))
+    "0xa1ba4b7f": migrateOwner(address,address)
+    "0xa3ffa523": migrateRewards(uint256,address)
+    "0xa4fb0458": migrateGauge(address,bool)
+    "0xa6448732": migrateToUsdtVault(address,uint256)
+    "0xa73178f1": migrateOwnershipWithUri(uint256[],address[],string[])
+    "0xa74b343c": migrateOldNode()
+    "0xae8369e8": migrateNodes(address,uint256)
+    "0xae9d4b0b": migrateTo_98bf302(address)
+    "0xb087f056": migrated(uint16)
+    "0xb23d66c2": migrateStrategy(uint256,address,address,address)
+    "0xb547ea33": migrateAppointmentLegacy(address[],uint256[],uint256[],uint256[])
+    "0xb6e2dc35": migrateFunds(address,address[],bool,bool)
+    "0xbd4c576a": migrateAssets(address[],uint256)
+    "0xbeab80a2": migratedWallets(address)
+    "0xc13cbb63": migrateToPublic(uint256,uint256,string,(bool,bytes32)[])
+    "0xc1785a3b": migrateStrategy(address,address,address,uint256)
+    "0xc53b42ba": migrateLeftoverBnb(address,uint256)
+    "0xc5b365d3": migrateTo_d514745(address)
+    "0xc5c8bf98": migrateFtm(address,uint256)
+    "0xc90ae343": migrateSingleCompoundBalance(address)
+    "0xd00dcb2e": migrateUsers(address,address[],uint256[])
+    "0xd3627ac9": migrateAllWithLossTolerance(uint256)
+    "0xda8e8ca2": migrateTo_29635ef(address)
+    "0xdb27cdeb": migratedSupply()
+    "0xdb47310a": migrateAll(bool)
+    "0xdbbfaa7a": migrateStrategy(address,address,bytes)
+    "0xdd504003": migrateOwnership(uint256[],address[])
+    "0xddb56b26": migrateStrategy(address,address,uint256)
+    "0xe7bdc459": migratePool(uint8,uint256,uint256)
+    "0xea7eeb06": migrate2(uint256[],uint256[],uint256[])
+    "0xea902fcb": migrateFrom(bool,uint256,uint96,uint256[])
+    "0xed93001b": migrateNodes(uint64[],address)
+    "0xedb7775d": migrateUniswapV2Position(address,address,uint256)
+    "0xee7e0797": migrateTo_61c10da(address,address)
+    "0xf0903ec8": migrateBuyer(address,uint256)
+    "0xf1033d6e": migrateMultipleCompoundBalances(address[])
+    "0xf15d86f9": migrateFromV1(address)
+    "0xfc682d19": migrate(address[],bool)
+    "0xfe1e05b5": migrateToNewContract(address)
+    "0x00665d35": MigrateFrom(uint256)
+    "0x1187f75a": MigratedCrates(address,uint16,bool)
+    "0x1501f901": Migrate_Contract()
+    "0x1712be49": Migrate(uint256,uint256)
+    "0x18df02dc": Migrate(address,address,uint256)
+    "0x1aa25047": MigrateToken(uint256,address)
+    "0x1bd8accc": MigrateTooManyAtOnce()
+    "0x281186c3": MigrateUNI(address)
+    "0x2a05bb71": Migrate(address,address)
+    "0x2b14ac2b": MigrateRelation()
+    "0x3877c1b5": MigrateWNFT((string,uint256,uint256,uint256,bytes32,address,uint256,bool))
+    "0x3df560d2": Migrate_Wallet(address)
+    "0x43547bd3": MigrateCallFailed(address,bytes)
+    "0x442efdc1": MigrateController(address)
+    "0x4467d106": MigrateFromV1()
+    "0x454aff51": MigrateLP(address,address,address,bool)
+    "0x45ee87f2": Migrate(address,bool)
+    "0x46032178": MigrateAgentSet(address)
+    "0x483f1b18": MigratedTokens(address,uint256)
+    "0x487c38af": MigrateAllMusic()
+    "0x4c3de532": Migrate(uint256,address)
+    "0x4fb31c70": MigrateOldContract(address)
+    "0x5cf2afd7": MigrateNFT()
+    "0x63d3c63d": MigrateToGold(uint256)
+    "0x65decda0": MigrateV1toV2tokens(uint256)
+    "0x6d8a4268": MigrateV2toV1tokens(uint256)
+    "0x71870c85": MigrateTo(address)
+    "0x7496d833": MigratePower(address[],uint256[])
+    "0x7a7aa0bb": MigrateToSelf()
+    "0x8b80bd19": Migrated(address,uint256)
+    "0x928fd553": Migrated(address,address,uint256)
+    "0x9738cbc0": MigrateLiq()
+    "0x9f318811": Migrated(uint256,address,uint256,string)
+    "0xa1e34031": MigrateToProxy()
+    "0xa2e7361c": Migrated(address)
+    "0xa407e0c1": MigrateGeneral(address,uint256)
+    "0xa9d377db": MigrateStreamV2(address[],uint256[],uint256)
+    "0xac11774e": MigratePowerConfig(uint256,uint256)
+    "0xb20d23f5": MigrateToJungleGold(uint256)
+    "0xb9f04402": MigrateMusicTokens(uint256[])
+    "0xbce2d093": Migrate_Send_Driven_List(uint256,uint256)
+    "0xd2c8811b": MigrateReleaseInfo(uint256,uint256)
+    "0xd44a6dd2": Migrate(address,uint256,uint256)
+    "0xdd117a11": Migrated(string,string)
+    "0xe0551aa9": Migrated()
+    "0xe8fd4d8a": MigrateMint(address,uint256)
+    "0xe918920f": MigrateLiquidityPoolTokens(address,uint256,uint256,uint256)
+    "0xec68a4f9": Migrate(address,uint256[],uint256[],bytes32[])
+    "0xf1d64cb1": Migrate_Send_Sell_List(uint256,uint256)
+    "0xf2f47c23": MigrateV1toV2tokens()
+    "0xf59839bf": MigrateV2toV1tokens()
+    "0xf59feadc": MigrateTimestamp()
+    "0xf6e59e0b": MigratedSince(uint256)
+    "0xf74b1188": MigrateCallFailedError(address,bytes)
+    "0x1041a306": migrate(address token, address to, bool minter)
+Plugin_traceblock:
+  tokenWhitelist:
+    - "0x55d398326f99059ff775485246999027b3197955"  # USDT (稳定币，index 0 - 自动作为基础货币 baseToken)
+    - "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"  # WBNB
+    - "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"  # USDC
+    # 只计算这些代币的余额来评估合约价值
+    # 注意：
+    #   1. 第一个代币自动作为基础货币（baseToken）
+    #   2. 其他代币价格通过 DEX Router 相对于 baseToken 计算
+    #   3. 代币精度在启动时自动从链上获取，无需手动配置
+  routerAddress: "0x10ED43C718714eb63d5aA57B78B54704E256024E"  # PancakeSwap V2 Router (BSC)
+  priceCacheExpiry: 300      # 价格缓存过期时间（秒），默认 5 分钟
+  updateInterval: 300        # 更新间隔（秒），默认 5 分钟
+  updateOnStartup: false     # 启动时是否更新所有合约价值（默认关闭，首次启动或长时间停机后可开启）
+
+  # ARB 链配置示例：
+  # routerAddress: "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506"  # Uniswap V2 Router (ARB)
+  # 注意：需要把稳定币（如 USDT）放在 tokenWhitelist 的第一位作为 baseToken

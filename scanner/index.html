@@ -1,0 +1,2359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token数据库管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            background: rgba(248, 249, 250, 0.8);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .search-box {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-box input,
+        .search-box select {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-box input:focus,
+        .search-box select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .search-box select {
+            flex: 0 0 auto;
+            min-width: 120px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(149, 165, 166, 0.4);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 70vh;
+            position: relative;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 15px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+            position: relative;
+        }
+
+        th {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        th:hover {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+        }
+
+        th.sortable::after {
+            content: ' ⇅';
+            opacity: 0.5;
+            font-size: 0.8em;
+        }
+
+        th.sort-asc::after {
+            content: ' ↑';
+            opacity: 1;
+            color: #3498db;
+        }
+
+        th.sort-desc::after {
+            content: ' ↓';
+            opacity: 1;
+            color: #3498db;
+        }
+
+        tr:hover {
+            background: rgba(52, 152, 219, 0.05);
+        }
+
+        .token-link {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .token-link:hover {
+            color: #2980b9;
+            text-decoration: underline;
+            transform: translateX(3px);
+        }
+
+        .copy-btn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 3px 10px rgba(46, 204, 113, 0.3);
+        }
+
+        .state-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            min-width: 60px;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .state-0 {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .state-1 {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+        }
+
+        .state-badge:hover {
+            transform: scale(1.05);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .notes-cell {
+            min-width: 150px;
+            max-width: 250px;
+        }
+
+        .notes-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 40px;
+        }
+
+        .notes-display {
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            min-height: 40px;
+            word-wrap: break-word;
+        }
+
+        .notes-display:hover {
+            background: rgba(52, 152, 219, 0.1);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .number-cell {
+            font-family: 'Courier New', monospace;
+            font-weight: 500;
+            text-align: right;
+        }
+
+        .time-cell {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #5a6c7d;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+            background: rgba(248, 249, 250, 0.8);
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            flex-wrap: wrap;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            color: #333;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .pagination button.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .pagination button:disabled {
+            background: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .page-ellipsis {
+            color: #666;
+            font-weight: bold;
+            padding: 0 5px;
+        }
+
+        .page-info {
+            color: #666;
+            font-size: 14px;
+            margin-left: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .search-box {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-box input {
+                min-width: auto;
+            }
+
+            th, td {
+                padding: 10px 8px;
+                font-size: 14px;
+            }
+        }
+
+        /* Tab 导航样式 */
+        .tab-navigation {
+            display: flex;
+            background: rgba(44, 62, 80, 0.95);
+            border-bottom: 2px solid rgba(52, 152, 219, 0.3);
+            padding: 0 30px;
+            gap: 5px;
+        }
+
+        .tab-button {
+            flex: 1;
+            max-width: 200px;
+            padding: 15px 20px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tab-button:hover {
+            color: #3498db;
+            background: rgba(52, 152, 219, 0.1);
+        }
+
+        .tab-button.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+            background: rgba(52, 152, 219, 0.15);
+        }
+
+        .tab-icon {
+            font-size: 18px;
+        }
+
+        .tab-badge {
+            background: rgba(149, 165, 166, 0.8);
+            color: white;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            min-width: 20px;
+            text-align: center;
+            margin-left: auto;
+        }
+
+        .tab-badge.alert {
+            background: #e74c3c;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .tab-content {
+            position: relative;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Plugin and Alert Badges */
+        .plugin-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .alert-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .risk-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .message-cell {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .amount-cell {
+            display: inline-block;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Contracts 表格列宽样式 */
+        #contractsTable th:nth-child(2), /* 合约地址 */
+        #contractsTable td:nth-child(2) {
+            min-width: 150px;
+            max-width: 200px;
+        }
+
+        #contractsTable th:nth-child(4), /* 状态 */
+        #contractsTable td:nth-child(4) {
+            min-width: 100px;
+        }
+
+        #contractsTable th:nth-child(5), /* 函数数量 */
+        #contractsTable th:nth-child(6), /* 成功调用 */
+        #contractsTable th:nth-child(7), /* 失败调用 */
+        #contractsTable td:nth-child(5),
+        #contractsTable td:nth-child(6),
+        #contractsTable td:nth-child(7) {
+            min-width: 50px;
+            max-width: 70px;
+            font-size: 12px;
+        }
+
+        #contractsTable th:nth-child(8), /* 合约价值 */
+        #contractsTable td:nth-child(8) {
+            min-width: 80px;
+            max-width: 100px;
+            font-size: 12px;
+        }
+
+        #contractsTable th:nth-child(9), /* 函数执行结果 */
+        #contractsTable td:nth-child(9) {
+            min-width: 300px;
+            max-width: 500px;
+        }
+
+        #contractsTable th:nth-child(10), /* 更多 */
+        #contractsTable td:nth-child(10) {
+            min-width: 80px;
+        }
+
+        #contractsTable th:nth-child(11), /* 分析 */
+        #contractsTable td:nth-child(11) {
+            min-width: 80px;
+        }
+
+        #contractsTable th:nth-child(12), /* 查看状态 */
+        #contractsTable td:nth-child(12) {
+            min-width: 90px;
+        }
+
+        /* 详情弹窗样式 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 1.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #7f8c8d;
+            transition: color 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: #e74c3c;
+        }
+
+        .modal-body {
+            line-height: 1.8;
+        }
+
+        .modal-field {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-field-label {
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .modal-field-value {
+            color: #555;
+            word-break: break-all;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .modal-field-value a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        .modal-field-value a:hover {
+            text-decoration: underline;
+        }
+
+        .more-btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .more-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 3px 10px rgba(52, 152, 219, 0.3);
+        }
+
+        .more-btn:disabled {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .execution-result {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Token数据库管理系统</h1>
+        </div>
+
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="tokens" onclick="switchTab('tokens')">
+                <span class="tab-icon">🪙</span>
+                <span class="tab-label">Tokens</span>
+                <span class="tab-badge" id="tokensBadge">-</span>
+            </button>
+            <button class="tab-button" data-tab="notifications" onclick="switchTab('notifications')">
+                <span class="tab-icon">🔔</span>
+                <span class="tab-label">Notifications</span>
+                <span class="tab-badge" id="notificationsBadge">-</span>
+            </button>
+            <button class="tab-button" data-tab="contracts" onclick="switchTab('contracts')">
+                <span class="tab-icon">📄</span>
+                <span class="tab-label">Contracts</span>
+                <span class="tab-badge" id="contractsBadge">-</span>
+            </button>
+        </div>
+
+        <div class="tab-content">
+            <!-- Tokens Tab -->
+            <div class="tab-pane active" id="tokensTab">
+                <div class="controls">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="搜索Token地址...">
+                        <select id="stateFilter" onchange="filterByState()">
+                            <option value="">全部状态</option>
+                            <option value="0">未审计</option>
+                            <option value="1">已审计</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="searchTokens()">搜索</button>
+                        <button class="btn btn-primary" onclick="loadTokens()">刷新数据</button>
+                        <button class="btn btn-secondary" onclick="clearFilters()">清除筛选</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="tokensTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Token</th>
+                                <th>状态</th>
+                                <th class="sortable" onclick="sortTable('WBNB')">WBNB</th>
+                                <th class="sortable" onclick="sortTable('USDT')">USDT</th>
+                                <th class="sortable" onclick="sortTable('BUSD')">BUSD</th>
+                                <th class="sortable" onclick="sortTable('Finish')">完成时间</th>
+                                <th>备注</th>
+                                <th>余额</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tokensTableBody">
+                            <tr>
+                                <td colspan="10" class="loading">正在加载数据...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination" id="tokensPagination"></div>
+            </div>
+
+            <!-- Notifications Tab -->
+            <div class="tab-pane" id="notificationsTab">
+                <div class="controls notification-controls">
+                    <div class="search-box">
+                        <input type="text" id="notifSearchInput" placeholder="搜索Tx Hash、合约地址、地址、Token、消息...">
+                        <select id="pluginFilter" onchange="updateAlertTypeOptions()">
+                            <option value="">全部插件</option>
+                            <option value="bigtransfer">bigtransfer</option>
+                            <option value="migrate">migrate</option>
+                            <option value="newcontract">newcontract</option>
+                            <option value="traceall">traceall</option>
+                        </select>
+                        <select id="chainFilter" onchange="applyNotificationFilters()">
+                            <option value="">全部链</option>
+                            <option value="BSC">BSC</option>
+                            <option value="ETH">ETH</option>
+                            <option value="ARB">ARB</option>
+                        </select>
+                        <select id="alertTypeFilter" onchange="applyNotificationFilters()">
+                            <option value="">全部类型</option>
+                            <option value="TRANSFER">TRANSFER</option>
+                            <option value="APPROVE">APPROVE</option>
+                            <option value="MIGRATE_20">MIGRATE_20</option>
+                            <option value="VULN_BURN">VULN_BURN</option>
+                        </select>
+                        <select id="viewedFilter" onchange="applyNotificationFilters()">
+                            <option value="">全部状态</option>
+                            <option value="0">未查看</option>
+                            <option value="1">已查看</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="applyNotificationFilters()">搜索</button>
+                        <button class="btn btn-primary" onclick="loadData('notifications')">刷新</button>
+                        <button class="btn btn-primary" onclick="markAllNotificationsViewed()">全部查看</button>
+                        <button class="btn btn-secondary" onclick="clearNotificationFilters()">清除筛选</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="notificationsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Plugin</th>
+                                <th>Chain</th>
+                                <th>Alert Type</th>
+                                <th>Tx Hash</th>
+                                <th>Contract</th>
+                                <th>Token</th>
+                                <th>Amount</th>
+                                <th>Message</th>
+                                <th>Viewed</th>
+                                <th>Created</th>
+                                <th>Remark</th>
+                            </tr>
+                        </thead>
+                        <tbody id="notificationsTableBody">
+                            <tr>
+                                <td colspan="12" class="loading">正在加载数据...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination" id="notificationsPagination"></div>
+            </div>
+
+            <!-- Contracts Tab -->
+            <div class="tab-pane" id="contractsTab">
+                <div class="controls contract-controls">
+                    <div class="search-box">
+                        <input type="text" id="contractSearchInput" placeholder="搜索合约地址、Tx Hash、部署者...">
+                        <select id="contractChainFilter" onchange="applyContractFilters()">
+                            <option value="">全部链</option>
+                            <option value="BSC">BSC</option>
+                            <option value="ETH">ETH</option>
+                            <option value="ARB">ARB</option>
+                        </select>
+                        <select id="statusFilter" onchange="applyContractFilters()">
+                            <option value="">全部状态</option>
+                            <option value="pending">待分析</option>
+                            <option value="analyzed">已分析</option>
+                            <option value="invalid">无效</option>
+                        </select>
+                        <select id="contractViewedFilter" onchange="applyContractFilters()">
+                            <option value="">全部状态</option>
+                            <option value="0">未查看</option>
+                            <option value="1">已查看</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="applyContractFilters()">搜索</button>
+                        <button class="btn btn-primary" onclick="loadData('contracts')">刷新</button>
+                        <button class="btn btn-secondary" onclick="clearContractFilters()">清除筛选</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="contractsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>合约地址</th>
+                                <th>链</th>
+                                <th>状态</th>
+                                <th>函数数量</th>
+                                <th>成功调用</th>
+                                <th>失败调用</th>
+                                <th class="sortable" onclick="sortContractsTable('contract_value')">合约价值(USD)</th>
+                                <th>函数执行结果</th>
+                                <th>更多</th>
+                                <th>分析</th>
+                                <th>查看状态</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contractsTableBody">
+                            <tr>
+                                <td colspan="12" class="loading">正在加载数据...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination" id="contractsPagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // API 配置 - 动态获取当前主机
+        const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/api`;
+
+        // 分析服务配置 - 单独指向 contractAnalyzer.js 服务
+        const ANALYZER_API_URL = `${window.location.protocol}//${window.location.hostname}:3089/api`;
+
+        // 全局状态管理
+        let currentTab = 'tokens';
+        const tabStates = {
+            tokens: {
+                data: [],
+                sort: { field: null, direction: 'asc' },
+                page: 1,
+                total: 0,
+                totalPages: 0,
+                filters: {}
+            },
+            notifications: {
+                data: [],
+                sort: { field: 'id', direction: 'desc' },
+                page: 1,
+                total: 0,
+                totalPages: 0,
+                filters: {}
+            },
+            contracts: {
+                data: [],
+                sort: { field: 'contract_value', direction: 'desc' },
+                page: 1,
+                total: 0,
+                totalPages: 0,
+                filters: {}
+            }
+        };
+
+        let itemsPerPage = 100;
+        let currentStateFilter = '';
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 恢复保存的筛选条件（仅针对 tokens）
+            restoreFilters();
+
+            // 初始化加载当前 Tab（默认 tokens）
+            switchTab('tokens');
+
+            // 加载统计信息
+            loadTabStats();
+
+            // Tokens 搜索框回车事件
+            document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchTokens();
+                }
+            });
+
+            // Notifications 搜索框回车事件
+            document.getElementById('notifSearchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    applyNotificationFilters();
+                }
+            });
+
+            // Contracts 搜索框回车事件
+            document.getElementById('contractSearchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    applyContractFilters();
+                }
+            });
+        });
+
+        // ==================== Tab 切换和通用数据加载 ====================
+
+        // Tab 切换函数
+        function switchTab(tabName) {
+            currentTab = tabName;
+
+            // 更新 Tab 按钮状态
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.tab === tabName) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // 更新 Tab 内容显示
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('active');
+            });
+            document.getElementById(`${tabName}Tab`).classList.add('active');
+
+            // 加载该 Tab 的数据（如果还没加载过）
+            if (tabStates[tabName].data.length === 0) {
+                loadData(tabName);
+            }
+
+            // 更新分页显示
+            renderPagination(tabName);
+        }
+
+        // 通用数据加载函数
+        async function loadData(tabName) {
+            const state = tabStates[tabName];
+            const tbody = document.getElementById(`${tabName}TableBody`);
+
+            if (!tbody) {
+                console.error(`❌ 找不到表格: ${tabName}TableBody`);
+                return;
+            }
+
+            tbody.innerHTML = `<tr><td colspan="11" class="loading">正在加载数据...</td></tr>`;
+
+            try {
+                let url;
+                if (tabName === 'tokens') {
+                    url = `${API_BASE_URL}/tokens`;
+                } else if (tabName === 'notifications') {
+                    url = `${API_BASE_URL}/notifications`;
+                } else if (tabName === 'contracts') {
+                    url = `${API_BASE_URL}/contracts`;
+                }
+
+                console.log(`📡 正在请求: ${url}`);
+                const urlObj = new URL(url);
+                urlObj.searchParams.append('page', state.page);
+                urlObj.searchParams.append('limit', itemsPerPage);
+
+                // 添加筛选条件
+                Object.keys(state.filters).forEach(key => {
+                    if (state.filters[key] !== '' && state.filters[key] !== undefined) {
+                        urlObj.searchParams.append(key, state.filters[key]);
+                    }
+                });
+
+                // 添加排序
+                if (state.sort.field) {
+                    urlObj.searchParams.append('sortField', state.sort.field);
+                    urlObj.searchParams.append('sortDirection', state.sort.direction);
+                }
+
+                console.log(`📡 请求URL: ${urlObj.toString()}`);
+                const response = await fetch(urlObj);
+                console.log(`📡 响应状态: ${response.status}`);
+
+                const result = await response.json();
+                console.log(`📡 返回数据:`, result);
+
+                if (result.success) {
+                    state.data = result.data;
+                    state.total = result.pagination.total;
+                    state.totalPages = result.pagination.totalPages;
+                    console.log(`✅ 数据加载成功: ${result.data.length} 条记录`);
+                    renderTable(tabName);
+                    renderPagination(tabName);
+
+                    // 更新排序样式
+                    updateSortStyles(tabName);
+                } else {
+                    console.error(`❌ API 返回错误:`, result.message);
+                    showError(result.message || '加载数据失败');
+                }
+            } catch (error) {
+                console.error('❌ 加载数据失败:', error);
+                showError('网络错误，请检查服务器连接');
+            }
+        }
+
+        // 更新排序样式
+        function updateSortStyles(tabName) {
+            const state = tabStates[tabName];
+            if (!state.sort.field) return;
+
+            // 根据不同的 tab 使用不同的选择器
+            let selector = '';
+            if (tabName === 'tokens') {
+                selector = `th[onclick="sortTable('${state.sort.field}')"]`;
+            } else if (tabName === 'contracts') {
+                selector = `th[onclick="sortContractsTable('${state.sort.field}')"]`;
+            }
+
+            const th = document.querySelector(`#${tabName}Table ${selector}`);
+            if (th) {
+                th.classList.remove('sort-asc', 'sort-desc');
+                th.classList.add(state.sort.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+            }
+        }
+
+        // 通用表格渲染函数
+        function renderTable(tabName) {
+            const state = tabStates[tabName];
+            const tbody = document.getElementById(`${tabName}TableBody`);
+
+            if (!tbody) return;
+
+            if (state.data.length === 0) {
+                // 不同 Tab 的列数不同
+                const colCounts = {
+                    tokens: 9,
+                    notifications: 12,
+                    contracts: 12
+                };
+                const colspan = colCounts[tabName] || 11;
+                tbody.innerHTML = `<tr><td colspan="${colspan}" class="no-data">没有找到数据</td></tr>`;
+                return;
+            }
+
+            let html = '';
+
+            if (tabName === 'tokens') {
+                html = renderTokensRow(state.data);
+            } else if (tabName === 'notifications') {
+                html = renderNotificationsRow(state.data);
+            } else if (tabName === 'contracts') {
+                html = renderContractsRow(state.data);
+            }
+
+            tbody.innerHTML = html;
+        }
+
+        // ==================== Tokens 行渲染 ====================
+
+        function renderTokensRow(data) {
+            return data.map(token => `
+                <tr>
+                    <td>${token.Id}</td>
+                    <td>
+                        <a href="https://bscscan.com/token/${token.Token}" target="_blank" class="token-link">
+                            ${token.Token}
+                        </a>
+                        <button class="copy-btn" onclick="copyToClipboard('${token.Token}')">复制</button>
+                    </td>
+                    <td>
+                        <span class="state-badge state-${token.State}" onclick="toggleState(${token.Id})">
+                            ${token.State === 0 ? '未审计' : '已审计'}
+                        </span>
+                    </td>
+                    <td class="number-cell">${formatNumber(token.WBNB)}</td>
+                    <td class="number-cell">${formatNumber(token.USDT)}</td>
+                    <td class="number-cell">${formatNumber(token.BUSD)}</td>
+                    <td class="time-cell">${formatTimestamp(token.Finish)}</td>
+                    <td class="notes-cell">
+                        <div class="notes-display" onclick="editNotes(${token.Id})">
+                            ${token.Notes || '点击编辑备注'}
+                        </div>
+                    </td>
+                    <td>${token.Balance || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // ==================== Notifications 行渲染 ====================
+
+        function renderNotificationsRow(data) {
+            const pluginColors = {
+                'bigtransfer': 'linear-gradient(135deg, #3498db, #2980b9)',
+                'migrate': 'linear-gradient(135deg, #9b59b6, #8e44ad)',
+                'newcontract': 'linear-gradient(135deg, #e74c3c, #c0392b)',
+                'traceall': 'linear-gradient(135deg, #f39c12, #d68910)'
+            };
+
+            const alertTypeBadges = {
+                'TRANSFER': '#3498db',
+                'APPROVE': '#9b59b6',
+                'MIGRATE_20': '#e74c3c',
+                'VULN_BURN': '#c0392b',
+                'VULN_INIT_REENTER': '#c0392b',
+                'VULN_GETPRICE': '#c0392b',
+                'TRACE_TS': '#f39c12',
+                'TRACE_SWAP': '#f39c12',
+                'TRACE_PRE_VALUE': '#f39c12'
+            };
+
+            return data.map(notif => `
+                <tr>
+                    <td>${notif.id}</td>
+                    <td>
+                        <span class="plugin-badge" style="background: ${pluginColors[notif.plugin_name] || '#95a5a6'}">
+                            ${notif.plugin_name}
+                        </span>
+                    </td>
+                    <td>${notif.chain}</td>
+                    <td>
+                        <span class="alert-badge" style="background: ${alertTypeBadges[notif.alert_type] || '#95a5a6'}">
+                            ${notif.alert_type}
+                        </span>
+                    </td>
+                    <td>
+                        ${notif.tx_hash ?
+                            `<a href="${getScannerUrl(notif.chain, 'tx', notif.tx_hash)}" target="_blank" class="token-link">
+                                ${notif.tx_hash.substring(0, 10)}...
+                            </a>` : '-'}
+                    </td>
+                    <td>
+                        ${notif.contract_address ?
+                            `<a href="${getScannerUrl(notif.chain, 'address', notif.contract_address)}" target="_blank" class="token-link">
+                                ${notif.contract_address.substring(0, 10)}...
+                            </a>` : '-'}
+                    </td>
+                    <td>${notif.token_name || '-'}</td>
+                    <td class="number-cell">
+                        <span class="amount-cell" title="${notif.amount_formatted || formatCryptoAmount(notif.amount, notif.token_name)}">
+                            ${notif.amount_formatted || formatCryptoAmount(notif.amount, notif.token_name)}
+                        </span>
+                    </td>
+                    <td class="message-cell" title="${notif.message}">${notif.message ? notif.message.substring(0, 50) + '...' : '-'}</td>
+                    <td>
+                        <span class="state-badge state-${notif.is_viewed}" onclick="toggleNotificationViewed(${notif.id})">
+                            ${notif.is_viewed === 0 ? '未查看' : '已查看'}
+                        </span>
+                    </td>
+                    <td class="time-cell">${formatTimestamp(notif.created_at)}</td>
+                    <td class="notes-cell">
+                        <div class="notes-display" onclick="editNotificationRemark(${notif.id})">
+                            ${notif.remark || '点击编辑备注'}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ==================== Contracts 行渲染 ====================
+
+        function renderContractsRow(data) {
+            const statusColors = {
+                'pending': '#95a5a6',
+                'analyzed': '#27ae60',
+                'invalid': '#e74c3c'
+            };
+
+            const statusLabels = {
+                'pending': '待分析',
+                'analyzed': '已分析',
+                'invalid': '无效'
+            };
+
+            return data.map(contract => {
+                // 解析 analysis_result JSON
+                let analysisResult = null;
+                if (contract.analysis_result) {
+                    try {
+                        analysisResult = typeof contract.analysis_result === 'string'
+                            ? JSON.parse(contract.analysis_result)
+                            : contract.analysis_result;
+                    } catch (e) {
+                        console.error('解析 analysis_result 失败:', e);
+                    }
+                }
+
+                // 生成函数执行结果（只显示前3个）
+                let executionResultHtml = '<span style="color: #999;">-</span>';
+                if (analysisResult && Array.isArray(analysisResult) && analysisResult.length > 0) {
+                    const displayResults = analysisResult.slice(0, 3);
+                    const hasMore = analysisResult.length > 3;
+
+                    executionResultHtml = displayResults.map(result => {
+                        const displayName = result.name || result.selector || '未知函数';
+                        const displayValue = result.result ? result.result : result.error;
+                        const color = result.success ? '#27ae60' : '#e74c3c';
+                        return `<div style="font-size: 11px; padding: 2px 0; color: ${color}; white-space: normal; word-break: break-all;">
+                            ${displayName} : ${displayValue}
+                        </div>`;
+                    }).join('');
+
+                    if (hasMore) {
+                        executionResultHtml += `<div style="font-size: 11px; padding: 4px 0; color: #666; font-style: italic;">
+                            还有 ${analysisResult.length - 3} 个函数... 点击"更多"查看
+                        </div>`;
+                    }
+                }
+
+                // 检查是否是代理合约，显示实现合约地址
+                let implementationInfo = '';
+                if (contract.remark && contract.remark.includes('实现合约:')) {
+                    const match = contract.remark.match(/实现合约: (0x[a-fA-F0-9]{40})/);
+                    if (match) {
+                        implementationInfo = `<div style="font-size: 11px; padding: 4px 0; color: #3498db;">
+                            🛡️ 实现: <a href="${getScannerUrl(contract.chain_name, 'address', match[1])}" target="_blank" style="color: #3498db;">${match[1].substring(0, 10)}...</a>
+                        </div>`;
+                    }
+                }
+
+                return `
+                <tr data-contract-id="${contract.id}">
+                    <td>${contract.id}</td>
+                    <td>
+                        <a href="${getScannerUrl(contract.chain_name, 'address', contract.contract_address)}" target="_blank" class="token-link">
+                            ${contract.contract_address.substring(0, 10)}...
+                        </a>
+                        <button class="copy-btn" onclick="copyToClipboard('${contract.contract_address}')">复制</button>
+                    </td>
+                    <td>${contract.chain_name}</td>
+                    <td>
+                        <span class="status-badge" style="background: ${statusColors[contract.status] || '#95a5a6'}">
+                            ${statusLabels[contract.status] || contract.status}
+                        </span>
+                    </td>
+                    <td class="number-cell">${contract.function_count || 0}</td>
+                    <td class="number-cell">${formatNumber(contract.success_call_count)}</td>
+                    <td class="number-cell">${formatNumber(contract.fail_call_count)}</td>
+                    <td class="number-cell">$${formatNumber(contract.contract_value)}</td>
+                    <td>
+                        ${implementationInfo}
+                        ${executionResultHtml}
+                    </td>
+                    <td>
+                        <button class="more-btn" onclick="showContractDetail(${contract.id})">更多</button>
+                    </td>
+                    <td>
+                        ${contract.status === 'pending' ?
+                            `<button class="more-btn" onclick="analyzeContract(${contract.id})" id="analyze-btn-${contract.id}">分析</button>` :
+                            `<span style="color: #999; font-size: 12px;">${contract.status === 'analyzed' ? '已完成' : '无效'}</span>`
+                        }
+                    </td>
+                    <td>
+                        <span class="state-badge state-${contract.is_viewed}" onclick="toggleContractViewed(${contract.id})">
+                            ${contract.is_viewed === 0 ? '未查看' : '已查看'}
+                        </span>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+        // ==================== Tokens 功能函数 ====================
+
+        function loadTokens() {
+            tabStates.tokens.filters = {
+                search: document.getElementById('searchInput').value,
+                state: currentStateFilter
+            };
+            loadData('tokens');
+        }
+
+        function searchTokens() {
+            tabStates.tokens.page = 1;
+            saveFilters();
+            loadTokens();
+        }
+
+        function filterByState() {
+            currentStateFilter = document.getElementById('stateFilter').value;
+            tabStates.tokens.page = 1;
+            saveFilters();
+            loadTokens();
+        }
+
+        function sortTable(field) {
+            const th = document.querySelector(`th[onclick="sortTable('${field}')"]`);
+
+            document.querySelectorAll('th').forEach(header => {
+                if (header !== th) {
+                    header.classList.remove('sort-asc', 'sort-desc');
+                }
+            });
+
+            let direction = 'asc';
+            const numericFields = ['WBNB', 'USDT', 'BUSD'];
+            const isNumericField = numericFields.includes(field);
+
+            if (tabStates.tokens.sort.field === field) {
+                direction = tabStates.tokens.sort.direction === 'asc' ? 'desc' : 'asc';
+            } else if (isNumericField) {
+                direction = 'desc';
+            } else {
+                direction = 'asc';
+            }
+
+            tabStates.tokens.sort = { field, direction };
+
+            th.classList.remove('sort-asc', 'sort-desc');
+            th.classList.add(direction === 'asc' ? 'sort-asc' : 'sort-desc');
+
+            tabStates.tokens.page = 1;
+            saveFilters();
+            loadTokens();
+        }
+
+        function toggleState(id) {
+            const token = tabStates.tokens.data.find(t => t.Id === id);
+            if (!token) return;
+
+            const newState = token.State === 0 ? 1 : 0;
+
+            fetch(`${API_BASE_URL}/tokens/${id}/state`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ state: newState })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    token.State = newState;
+                    renderTable('tokens');
+                    showToast(`状态已更新为：${newState === 0 ? '未审计' : '已审计'}`);
+                } else {
+                    showError(result.message || '更新失败');
+                }
+            })
+            .catch(error => {
+                console.error('更新状态失败:', error);
+                showError('网络错误，请稍后重试');
+            });
+        }
+
+        function editNotes(id) {
+            const token = tabStates.tokens.data.find(t => t.Id === id);
+            if (!token) return;
+
+            const newNotes = prompt('编辑备注:', token.Notes || '');
+            if (newNotes === null) return;
+
+            fetch(`${API_BASE_URL}/tokens/${id}/notes`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes: newNotes })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    token.Notes = newNotes;
+                    renderTable('tokens');
+                    showToast('备注已更新');
+                } else {
+                    showError(result.message || '更新失败');
+                }
+            })
+            .catch(error => {
+                console.error('更新备注失败:', error);
+                showError('网络错误，请稍后重试');
+            });
+        }
+
+        // ==================== Notifications 功能函数 ====================
+
+        // 插件与告警类型的映射关系
+        const pluginAlertTypeMap = {
+            'bigtransfer': [
+                { value: 'TRANSFER', label: 'TRANSFER' },
+                { value: 'APPROVE', label: 'APPROVE' },
+                { value: 'TRANSFER_ORIGIN', label: 'TRANSFER_ORIGIN' }
+            ],
+            'migrate': [
+                { value: 'MIGRATE_20', label: 'MIGRATE_20' }
+            ],
+            'newcontract': [
+                { value: 'VULN_BURN', label: 'VULN_BURN' },
+                { value: 'VULN_INIT_REENTER', label: 'VULN_INIT_REENTER' },
+                { value: 'VULN_GETPRICE', label: 'VULN_GETPRICE' }
+            ],
+            'traceall': [
+                { value: 'TRACE_TS', label: 'TRACE_TS' },
+                { value: 'TRACE_SWAP', label: 'TRACE_SWAP' },
+                { value: 'TRACE_PRE_VALUE', label: 'TRACE_PRE_VALUE' }
+            ]
+        };
+
+        // 根据选择的插件动态更新告警类型选择框
+        function updateAlertTypeOptions() {
+            const pluginValue = document.getElementById('pluginFilter').value;
+            const alertTypeSelect = document.getElementById('alertTypeFilter');
+
+            // 清空现有选项
+            alertTypeSelect.innerHTML = '<option value="">全部类型</option>';
+
+            // 如果选择了特定插件，添加对应的告警类型
+            if (pluginValue && pluginAlertTypeMap[pluginValue]) {
+                pluginAlertTypeMap[pluginValue].forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type.value;
+                    option.textContent = type.label;
+                    alertTypeSelect.appendChild(option);
+                });
+            }
+
+            // 应用筛选
+            applyNotificationFilters();
+        }
+
+        function applyNotificationFilters() {
+            tabStates.notifications.filters = {
+                search: document.getElementById('notifSearchInput').value,
+                plugin_name: document.getElementById('pluginFilter').value,
+                chain: document.getElementById('chainFilter').value,
+                alert_type: document.getElementById('alertTypeFilter').value,
+                is_viewed: document.getElementById('viewedFilter').value
+            };
+            tabStates.notifications.page = 1;
+            loadData('notifications');
+        }
+
+        function clearNotificationFilters() {
+            document.getElementById('notifSearchInput').value = '';
+            document.getElementById('pluginFilter').value = '';
+            document.getElementById('chainFilter').value = '';
+
+            // 重置告警类型选择框为默认选项
+            const alertTypeSelect = document.getElementById('alertTypeFilter');
+            alertTypeSelect.innerHTML = '<option value="">全部类型</option>';
+
+            document.getElementById('viewedFilter').value = '';
+            tabStates.notifications.filters = {};
+            tabStates.notifications.page = 1;
+            loadData('notifications');
+        }
+
+        function toggleNotificationViewed(id) {
+            const notif = tabStates.notifications.data.find(n => n.id === id);
+            if (!notif) return;
+
+            const newViewed = notif.is_viewed === 0 ? 1 : 0;
+
+            fetch(`${API_BASE_URL}/notifications/${id}/viewed`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_viewed: newViewed })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    notif.is_viewed = newViewed;
+                    renderTable('notifications');
+                    loadTabStats();
+                    showToast(`状态已更新为：${newViewed === 0 ? '未查看' : '已查看'}`);
+                } else {
+                    showError(result.message || '更新失败');
+                }
+            })
+            .catch(error => {
+                console.error('更新状态失败:', error);
+                showError('网络错误，请稍后重试');
+            });
+        }
+
+        function markAllNotificationsViewed() {
+            const filters = {
+                search: document.getElementById('notifSearchInput').value,
+                plugin_name: document.getElementById('pluginFilter').value,
+                chain: document.getElementById('chainFilter').value,
+                alert_type: document.getElementById('alertTypeFilter').value
+            };
+
+            fetch(`${API_BASE_URL}/notifications/viewed/all`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(filters)
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    if (result.message && result.message.includes('成功更新0条记录')) {
+                        showToast('当前筛选条件下没有未查看通知');
+                    } else {
+                        showToast(result.message || '已将当前筛选结果全部标记为已查看');
+                    }
+                    loadData('notifications');
+                    loadTabStats();
+                } else {
+                    showError(result.message || '批量更新失败');
+                }
+            })
+            .catch(error => {
+                console.error('全部查看失败:', error);
+                showError('网络错误，请稍后重试');
+            });
+        }
+
+        function editNotificationRemark(id) {
+            const notif = tabStates.notifications.data.find(n => n.id === id);
+            if (!notif) return;
+
+            const newRemark = prompt('编辑备注:', notif.remark || '');
+            if (newRemark === null) return;
+
+            fetch(`${API_BASE_URL}/notifications/${id}/remark`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ remark: newRemark })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    notif.remark = newRemark;
+                    renderTable('notifications');
+                    showToast('备注已更新');
+                } else {
+                    showError(result.message || '更新失败');
+                }
+            })
+            .catch(error => {
+                console.error('更新备注失败:', error);
+                showError('网络错误，请稍后重试');
+            });
+        }
+
+        // ==================== Contracts 功能函数 ====================
+
+        function applyContractFilters() {
+            tabStates.contracts.filters = {
+                search: document.getElementById('contractSearchInput').value,
+                chain_name: document.getElementById('contractChainFilter').value,
+                status: document.getElementById('statusFilter').value,
+                is_viewed: document.getElementById('contractViewedFilter').value
+            };
+            tabStates.contracts.page = 1;
+            loadData('contracts');
+        }
+
+        // 合约表格排序函数
+        function sortContractsTable(field) {
+            const th = document.querySelector(`th[onclick="sortContractsTable('${field}')"]`);
+
+            // 移除其他表头的排序样式
+            document.querySelectorAll('#contractsTable th').forEach(header => {
+                if (header !== th) {
+                    header.classList.remove('sort-asc', 'sort-desc');
+                }
+            });
+
+            let direction = 'desc';
+
+            // 如果已经点击了这个字段，切换排序方向
+            if (tabStates.contracts.sort.field === field) {
+                direction = tabStates.contracts.sort.direction === 'desc' ? 'asc' : 'desc';
+            }
+
+            tabStates.contracts.sort = { field, direction };
+
+            // 更新表头样式
+            th.classList.remove('sort-asc', 'sort-desc');
+            th.classList.add(direction === 'asc' ? 'sort-asc' : 'sort-desc');
+
+            tabStates.contracts.page = 1;
+            loadData('contracts');
+        }
+
+        function clearContractFilters() {
+            document.getElementById('contractSearchInput').value = '';
+            document.getElementById('contractChainFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('contractViewedFilter').value = '';
+            tabStates.contracts.filters = {};
+            tabStates.contracts.page = 1;
+            loadData('contracts');
+        }
+
+        function toggleContractViewed(id) {
+            const contract = tabStates.contracts.data.find(c => c.id === id);
+            if (!contract) return;
+
+            const newViewed = contract.is_viewed === 0 ? 1 : 0;
+
+            fetch(`${API_BASE_URL}/contracts/${id}/viewed`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_viewed: newViewed })
+            })
+            .then(res => res.json())
+            .then(async result => {
+                if (result.success) {
+                    // 更新本地数据并刷新单行以获取最新数据
+                    contract.is_viewed = newViewed;
+                    await refreshContractRow(id);
+                    showToast(`状态已更新为：${newViewed === 0 ? '未查看' : '已查看'}`);
+                } else {
+                    showError(result.message || '更新失败');
+                }
+            })
+            .catch(error => {
+                console.error('更新状态失败:', error);
+                showError('网络错误，请稍后重试');
+            });
+        }
+
+        function editContractRemark(id) {
+            const contract = tabStates.contracts.data.find(c => c.id === id);
+            if (!contract) return;
+
+            const newRemark = prompt('编辑备注:', contract.remark || '');
+            if (newRemark === null) return;
+
+            fetch(`${API_BASE_URL}/contracts/${id}/remark`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ remark: newRemark })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    contract.remark = newRemark;
+                    renderTable('contracts');
+                    showToast('备注已更新');
+                } else {
+                    showError(result.message || '更新失败');
+                }
+            })
+            .catch(error => {
+                console.error('更新备注失败:', error);
+                showError('网络错误，请稍后重试');
+            });
+        }
+
+        // 分析合约
+        async function analyzeContract(id) {
+            const btn = document.getElementById(`analyze-btn-${id}`);
+            if (!btn) return;
+
+            // 禁用按钮，显示分析中
+            btn.disabled = true;
+            btn.textContent = '分析中...';
+            btn.style.opacity = '0.6';
+
+            try {
+                showToast('开始分析合约，请稍候...');
+
+                const response = await fetch(`${ANALYZER_API_URL}/contracts/${id}/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message || '分析完成');
+
+                    // 只刷新单行数据
+                    await refreshContractRow(id);
+                } else {
+                    showError(result.message || '分析失败');
+
+                    // 如果返回了 contractId，也刷新单行（可能是标记为无效）
+                    if (result.contractId) {
+                        await refreshContractRow(result.contractId);
+                    } else {
+                        // 恢复按钮状态
+                        btn.disabled = false;
+                        btn.textContent = '分析';
+                        btn.style.opacity = '1';
+                    }
+                }
+            } catch (error) {
+                console.error('分析合约失败:', error);
+                showError('网络错误，请稍后重试');
+                // 恢复按钮状态
+                btn.disabled = false;
+                btn.textContent = '分析';
+                btn.style.opacity = '1';
+            }
+        }
+
+        // 重新分析合约（从弹窗触发）
+        async function reanalyzeContract(id) {
+            // 确认对话框
+            if (!confirm('确定要重新分析此合约吗？这将覆盖之前的分析结果。')) {
+                return;
+            }
+
+            // 先关闭弹窗
+            closeModal();
+
+            showToast('正在重置状态...');
+
+            // 重置状态为 pending
+            try {
+                const response = await fetch(`${API_BASE_URL}/contracts/${id}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'pending' })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('已重置为待分析状态，开始分析...');
+                    // 刷新单行
+                    await refreshContractRow(id);
+                    // 开始分析
+                    await new Promise(resolve => setTimeout(resolve, 500)); // 等待500ms让UI更新
+                    await analyzeContract(id);
+                } else {
+                    showError(result.message || '重置状态失败');
+                }
+            } catch (error) {
+                console.error('重置状态失败:', error);
+                showError('网络错误，请稍后重试');
+            }
+        }
+
+        // 刷新单行数据
+        async function refreshContractRow(id) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/contracts/${id}`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    updateContractRow(result.data);
+                }
+            } catch (error) {
+                console.error('刷新行失败:', error);
+            }
+        }
+
+        // 更新单行数据
+        function updateContractRow(contract) {
+            const row = document.querySelector(`tr[data-contract-id="${contract.id}"]`);
+            if (!row) {
+                // 如果找不到行，重新加载整个表格
+                loadData('contracts');
+                return;
+            }
+
+            // 更新内存中的数据
+            const existingContract = tabStates.contracts.data.find(c => c.id === contract.id);
+            if (existingContract) {
+                Object.assign(existingContract, contract);
+            }
+
+            const statusColors = {
+                'pending': '#95a5a6',
+                'analyzed': '#27ae60',
+                'invalid': '#e74c3c'
+            };
+
+            const statusLabels = {
+                'pending': '待分析',
+                'analyzed': '已分析',
+                'invalid': '无效'
+            };
+
+            // 解析 analysis_result
+            let analysisResult = null;
+            if (contract.analysis_result) {
+                try {
+                    analysisResult = typeof contract.analysis_result === 'string'
+                        ? JSON.parse(contract.analysis_result)
+                        : contract.analysis_result;
+                } catch (e) {
+                    console.error('解析 analysis_result 失败:', e);
+                }
+            }
+
+            // 检查是否是代理合约，显示实现合约地址
+            let implementationInfo = '';
+            if (contract.remark && contract.remark.includes('实现合约:')) {
+                const match = contract.remark.match(/实现合约: (0x[a-fA-F0-9]{40})/);
+                if (match) {
+                    implementationInfo = `<div style="font-size: 11px; padding: 4px 0; color: #3498db;">
+                        🛡️ 实现: <a href="${getScannerUrl(contract.chain_name, 'address', match[1])}" target="_blank" style="color: #3498db;">${match[1].substring(0, 10)}...</a>
+                    </div>`;
+                }
+            }
+
+            // 生成函数执行结果（只显示前3个）
+            let executionResultHtml = '<span style="color: #999;">-</span>';
+            if (analysisResult && Array.isArray(analysisResult) && analysisResult.length > 0) {
+                const displayResults = analysisResult.slice(0, 3);
+                const hasMore = analysisResult.length > 3;
+
+                executionResultHtml = displayResults.map(result => {
+                    const displayName = result.name || result.selector || '未知函数';
+                    const displayValue = result.result ? result.result : result.error;
+                    const color = result.success ? '#27ae60' : '#e74c3c';
+                    return `<div style="font-size: 11px; padding: 2px 0; color: ${color}; white-space: normal; word-break: break-all;">
+                        ${displayName} : ${displayValue}
+                    </div>`;
+                }).join('');
+
+                if (hasMore) {
+                    executionResultHtml += `<div style="font-size: 11px; padding: 4px 0; color: #666; font-style: italic;">
+                        还有 ${analysisResult.length - 3} 个函数... 点击"更多"查看
+                    </div>`;
+                }
+            }
+
+            // 更新行内容
+            row.innerHTML = `
+                <td>${contract.id}</td>
+                <td>
+                    <a href="${getScannerUrl(contract.chain_name, 'address', contract.contract_address)}" target="_blank" class="token-link">
+                        ${contract.contract_address.substring(0, 10)}...
+                    </a>
+                    <button class="copy-btn" onclick="copyToClipboard('${contract.contract_address}')">复制</button>
+                </td>
+                <td>${contract.chain_name}</td>
+                <td>
+                    <span class="status-badge" style="background: ${statusColors[contract.status] || '#95a5a6'}">
+                        ${statusLabels[contract.status] || contract.status}
+                    </span>
+                </td>
+                <td class="number-cell">${contract.function_count || 0}</td>
+                <td class="number-cell">${formatNumber(contract.success_call_count)}</td>
+                <td class="number-cell">${formatNumber(contract.fail_call_count)}</td>
+                <td class="number-cell">$${formatNumber(contract.contract_value)}</td>
+                <td>
+                    ${implementationInfo}
+                    ${executionResultHtml}
+                </td>
+                <td>
+                    <button class="more-btn" onclick="showContractDetail(${contract.id})">更多</button>
+                </td>
+                <td>
+                    ${contract.status === 'pending' ?
+                        `<button class="more-btn" onclick="analyzeContract(${contract.id})" id="analyze-btn-${contract.id}">分析</button>` :
+                        `<span style="color: #999; font-size: 12px;">${contract.status === 'analyzed' ? '已完成' : '无效'}</span>`
+                    }
+                </td>
+                <td>
+                    <span class="state-badge state-${contract.is_viewed}" onclick="toggleContractViewed(${contract.id})">
+                        ${contract.is_viewed === 0 ? '未查看' : '已查看'}
+                    </span>
+                </td>
+            `;
+        }
+
+        // ==================== 统计信息加载 ====================
+
+        async function loadTabStats() {
+            try {
+                // Tokens 统计（现有）
+                const tokenResponse = await fetch(`${API_BASE_URL}/stats`);
+                const tokenStats = await tokenResponse.json();
+                if (tokenStats.success) {
+                    document.getElementById('tokensBadge').textContent = tokenStats.data.total;
+                    document.getElementById('tokensBadge').classList.remove('alert');
+                }
+
+                // Notifications 统计
+                const notifResponse = await fetch(`${API_BASE_URL}/notifications/stats`);
+                const notifStats = await notifResponse.json();
+                if (notifStats.success) {
+                    document.getElementById('notificationsBadge').textContent = notifStats.data.unviewed;
+                    if (notifStats.data.unviewed > 0) {
+                        document.getElementById('notificationsBadge').classList.add('alert');
+                    } else {
+                        document.getElementById('notificationsBadge').classList.remove('alert');
+                    }
+                }
+
+                // Contracts 统计
+                const contractResponse = await fetch(`${API_BASE_URL}/contracts/stats`);
+                const contractStats = await contractResponse.json();
+                if (contractStats.success) {
+                    document.getElementById('contractsBadge').textContent = contractStats.data.unviewed;
+                    if (contractStats.data.unviewed > 0) {
+                        document.getElementById('contractsBadge').classList.add('alert');
+                    } else {
+                        document.getElementById('contractsBadge').classList.remove('alert');
+                    }
+                }
+            } catch (error) {
+                console.error('加载统计信息失败:', error);
+            }
+        }
+
+        // 每 30 秒刷新一次统计
+        setInterval(loadTabStats, 30000);
+
+        // ==================== 通用辅助函数 ====================
+
+        // 根据链名称获取区块链浏览器 URL
+        function getScannerUrl(chain, type, address) {
+            const scanners = {
+                'BSC': 'https://bscscan.com',
+                'ETH': 'https://etherscan.io',
+                'ARBITRUM': 'https://arbiscan.io',
+                'ARB': 'https://arbiscan.io',
+                'POLYGON': 'https://polygonscan.com',
+                'MATIC': 'https://polygonscan.com',
+                'FTM': 'https://ftmscan.com',
+                'AVAX': 'https://snowtrace.io',
+                'OPTIMISM': 'https://optimistic.etherscan.io',
+                'OP': 'https://optimistic.etherscan.io',
+                'BASE': 'https://basescan.org',
+                'ZKSYNC': 'https://explorer.zksync.io',
+                'LINEA': 'https://lineascan.build'
+            };
+
+            const baseUrl = scanners[chain] || scanners['BSC'];
+            const path = type === 'tx' ? '/tx/' : '/address/';
+            return `${baseUrl}${path}${address}`;
+        }
+
+        function formatNumber(num) {
+            if (num === null || num === undefined) return '-';
+            return Number(num).toLocaleString();
+        }
+
+        // 格式化加密货币金额
+        function formatCryptoAmount(amount, tokenName) {
+            if (!amount) return '-';
+
+            // 如果是字符串且已经是格式化过的
+            if (typeof amount === 'string' && amount.includes(' ')) {
+                return amount;
+            }
+
+            // 转换为数字
+            const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+
+            // 如果是很大的数（Wei单位），需要转换
+            if (numAmount > 1e15) {
+                // 假设是 Wei，转换为 Ether
+                const etherAmount = numAmount / 1e18;
+                if (etherAmount < 0.0001) {
+                    return etherAmount.toExponential(2);
+                } else if (etherAmount < 1) {
+                    return etherAmount.toFixed(4);
+                } else {
+                    return etherAmount.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 6
+                    });
+                }
+            }
+
+            // 普通数字格式化
+            return numAmount.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 6
+            });
+        }
+
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return '-';
+            const date = new Date(timestamp);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function showError(message) {
+            console.error(message);
+            showToast(message);
+        }
+
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('已复制到剪贴板');
+                }).catch(err => {
+                    fallbackCopyToClipboard(text);
+                });
+            } else {
+                fallbackCopyToClipboard(text);
+            }
+        }
+
+        function fallbackCopyToClipboard(text) {
+            try {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                if (successful) {
+                    showToast('已复制到剪贴板');
+                } else {
+                    showToast('复制失败，请手动复制');
+                }
+            } catch (err) {
+                console.error('备用复制方法失败:', err);
+                showToast('复制失败，请手动复制');
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // ==================== 分页函数 ====================
+
+        function renderPagination(tabName) {
+            const state = tabStates[tabName];
+            const pagination = document.getElementById(`${tabName}Pagination`);
+
+            if (!pagination || state.totalPages <= 1) {
+                if (pagination) pagination.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+
+            html += `<button onclick="changePage('${tabName}', ${state.page - 1})" ${state.page === 1 ? 'disabled' : ''}>上一页</button>`;
+
+            const maxVisiblePages = 7;
+            let startPage = 1;
+            let endPage = state.totalPages;
+
+            if (state.totalPages > maxVisiblePages) {
+                if (state.page <= 4) {
+                    endPage = maxVisiblePages;
+                } else if (state.page >= state.totalPages - 3) {
+                    startPage = state.totalPages - maxVisiblePages + 1;
+                } else {
+                    startPage = state.page - 3;
+                    endPage = state.page + 3;
+                }
+            }
+
+            if (startPage > 1) {
+                html += `<button onclick="changePage('${tabName}', 1)">1</button>`;
+                if (startPage > 2) {
+                    html += `<span class="page-ellipsis">...</span>`;
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === state.page) {
+                    html += `<button class="active">${i}</button>`;
+                } else {
+                    html += `<button onclick="changePage('${tabName}', ${i})">${i}</button>`;
+                }
+            }
+
+            if (endPage < state.totalPages) {
+                if (endPage < state.totalPages - 1) {
+                    html += `<span class="page-ellipsis">...</span>`;
+                }
+                html += `<button onclick="changePage('${tabName}', ${state.totalPages})">${state.totalPages}</button>`;
+            }
+
+            html += `<button onclick="changePage('${tabName}', ${state.page + 1})" ${state.page === state.totalPages ? 'disabled' : ''}>下一页</button>`;
+            html += `<span class="page-info">第 ${state.page} 页，共 ${state.totalPages} 页 (${state.total} 条记录)</span>`;
+
+            pagination.innerHTML = html;
+        }
+
+        function changePage(tabName, page) {
+            const state = tabStates[tabName];
+            if (page >= 1 && page <= state.totalPages) {
+                state.page = page;
+                loadData(tabName);
+            }
+        }
+
+        // ==================== LocalStorage 管理函数 ====================
+
+        function saveFilters() {
+            const filters = {
+                searchTerm: document.getElementById('searchInput').value,
+                stateFilter: currentStateFilter,
+                sortField: tabStates.tokens.sort.field,
+                sortDirection: tabStates.tokens.sort.direction,
+                page: tabStates.tokens.page,
+                itemsPerPage: itemsPerPage
+            };
+            localStorage.setItem('tokenFilters', JSON.stringify(filters));
+        }
+
+        function restoreFilters() {
+            try {
+                const savedFilters = localStorage.getItem('tokenFilters');
+                if (savedFilters) {
+                    const filters = JSON.parse(savedFilters);
+
+                    if (filters.searchTerm) {
+                        document.getElementById('searchInput').value = filters.searchTerm;
+                    }
+
+                    if (filters.stateFilter !== undefined) {
+                        currentStateFilter = filters.stateFilter;
+                        document.getElementById('stateFilter').value = filters.stateFilter;
+                    }
+
+                    if (filters.sortField) {
+                        tabStates.tokens.sort.field = filters.sortField;
+                        tabStates.tokens.sort.direction = filters.sortDirection || 'asc';
+                        updateSortUI();
+                    }
+
+                    if (filters.page) {
+                        tabStates.tokens.page = filters.page;
+                    }
+
+                    if (filters.itemsPerPage) {
+                        itemsPerPage = filters.itemsPerPage;
+                    }
+                }
+            } catch (error) {
+                console.error('恢复筛选条件失败:', error);
+                localStorage.removeItem('tokenFilters');
+            }
+        }
+
+        function updateSortUI() {
+            document.querySelectorAll('th').forEach(header => {
+                header.classList.remove('sort-asc', 'sort-desc');
+            });
+
+            if (tabStates.tokens.sort.field) {
+                const th = document.querySelector(`th[onclick="sortTable('${tabStates.tokens.sort.field}')"]`);
+                if (th) {
+                    th.classList.add(tabStates.tokens.sort.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+                }
+            }
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('stateFilter').value = '';
+            currentStateFilter = '';
+            tabStates.tokens.sort = { field: null, direction: 'asc' };
+            updateSortUI();
+            tabStates.tokens.page = 1;
+            localStorage.removeItem('tokenFilters');
+            loadTokens();
+            showToast('已清除所有筛选条件');
+        }
+
+        // ==================== 合约详情弹窗 ====================
+
+        function showContractDetail(id) {
+            const contract = tabStates.contracts.data.find(c => c.id === id);
+            if (!contract) return;
+
+            // 解析 analysis_result JSON
+            let analysisResult = null;
+            if (contract.analysis_result) {
+                try {
+                    analysisResult = typeof contract.analysis_result === 'string'
+                        ? JSON.parse(contract.analysis_result)
+                        : contract.analysis_result;
+                } catch (e) {
+                    console.error('解析 analysis_result 失败:', e);
+                }
+            }
+
+            const modalHtml = `
+                <div class="modal-overlay" id="contractModal" onclick="closeModal(event)">
+                    <div class="modal-content" onclick="event.stopPropagation()">
+                        <div class="modal-header">
+                            <h2>合约详情 #${contract.id}</h2>
+                            <button class="modal-close" onclick="closeModal()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="modal-field">
+                                <div class="modal-field-label">合约地址</div>
+                                <div class="modal-field-value">
+                                    <a href="${getScannerUrl(contract.chain_name, 'address', contract.contract_address)}" target="_blank">${contract.contract_address}</a>
+                                </div>
+                            </div>
+                            <div class="modal-field">
+                                <div class="modal-field-label">部署者地址</div>
+                                <div class="modal-field-value">
+                                    ${contract.deployer_address ?
+                                        `<a href="${getScannerUrl(contract.chain_name, 'address', contract.deployer_address)}" target="_blank">${contract.deployer_address}</a>` :
+                                        '-'}
+                                </div>
+                            </div>
+                            <div class="modal-field">
+                                <div class="modal-field-label">交易哈希</div>
+                                <div class="modal-field-value">
+                                    ${contract.tx_hash ?
+                                        `<a href="${getScannerUrl(contract.chain_name, 'tx', contract.tx_hash)}" target="_blank">${contract.tx_hash}</a>` :
+                                        '-'}
+                                </div>
+                            </div>
+                            <div class="modal-field">
+                                <div class="modal-field-label">首次发现时间</div>
+                                <div class="modal-field-value">${formatTimestamp(contract.first_seen_at)}</div>
+                            </div>
+                            <div class="modal-field">
+                                <div class="modal-field-label">备注</div>
+                                <div class="modal-field-value" style="cursor: pointer;" onclick="editContractRemark(${contract.id})">
+                                    ${contract.remark || '点击编辑备注'}
+                                </div>
+                            </div>
+                            <div class="modal-field">
+                                <div class="modal-field-label">函数统计</div>
+                                <div class="modal-field-value">
+                                    总数: ${contract.function_count || 0} |
+                                    成功: <span style="color: #27ae60;">${contract.success_call_count || 0}</span> |
+                                    失败: <span style="color: #e74c3c;">${contract.fail_call_count || 0}</span>
+                                </div>
+                            </div>
+                            ${analysisResult && analysisResult.length > 0 ? `
+                            <div class="modal-field">
+                                <div class="modal-field-label">函数执行结果</div>
+                                <div class="modal-field-value" style="max-height: 400px; overflow-y: auto; background: #1e1e1e; padding: 15px; border-radius: 5px;">
+                                    ${analysisResult.map(result => {
+                                        const displayName = result.name || result.selector || '未知函数';
+                                        const displayArgs = result.args ? `(${result.args})` : '';
+                                        const color = result.success ? '#27ae60' : '#e74c3c';
+                                        return `
+                                            <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #333;">
+                                                <div style="font-weight: bold; color: #fff; margin-bottom: 4px;">
+                                                    ${displayName}${displayArgs}
+                                                </div>
+                                                <div style="font-size: 12px; color: ${color}; word-break: break-all;">
+                                                    ${result.success ? '✅ 成功: ' : '❌ 失败: '}${result.result || result.error}
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                            ` : ''}
+                            <div class="modal-field" style="margin-top: 20px;">
+                                <button class="btn btn-primary" onclick="reanalyzeContract(${contract.id})" style="width: 100%; padding: 12px; font-size: 16px;">
+                                    🔄 重新分析
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 移除旧弹窗（如果存在）
+            const oldModal = document.getElementById('contractModal');
+            if (oldModal) oldModal.remove();
+
+            // 添加新弹窗
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // 显示弹窗
+            setTimeout(() => {
+                document.getElementById('contractModal').classList.add('show');
+            }, 10);
+        }
+
+        function closeModal(event) {
+            if (event && event.target.id !== 'contractModal') return;
+            const modal = document.getElementById('contractModal');
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => modal.remove(), 300);
+            }
+        }
+    </script>
+</body>
+</html>

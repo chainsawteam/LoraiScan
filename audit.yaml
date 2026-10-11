@@ -1,0 +1,15 @@
+Audit:
+  enabled: true
+  baseURL: "https://lorai.invincible.best"
+  apiKey: ""
+  rpcURL: ""
+  rpcURLByChain:
+    BSC: ""
+    ETH: ""
+    ARB: ""
+  validationMode: "onchain_trace"
+  codexMode: "real"
+  priority: 100
+  maxRetries: 2
+  requestTimeoutSec: 15
+  pollIntervalSec: 10
